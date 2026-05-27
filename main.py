@@ -8,7 +8,8 @@ import re
 # Constants
 MODEL_NAME = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DTYPE = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+# Use float16 for T4 optimization
+DTYPE = torch.float16 if torch.cuda.is_available() else torch.float32
 
 class NL2BashCLI:
     def __init__(self):
