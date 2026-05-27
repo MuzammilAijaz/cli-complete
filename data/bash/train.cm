@@ -1,0 +1,100 @@
+top -b -d2 -s1 | sed -e '1,/USERNAME/d' | sed -e '1,/^$/d'
+top -b -n 1 -u abc | awk 'NR>7 { sum += $9; } END { print sum; }'
+top -b -d 5 -n 2 | awk '$1 == "PID" {block_num++; next} block_num == 2 {sum += $9;} END {print sum}'
+top -n 1
+top -bn1 | grep zombie
+top -bn1 | sed -n '/Cpu/p'
+top -bn1 | grep zombie | awk '{print $4" "$6" "$8" "$10}'
+top -b -n1 -c
+top -b -n1 | grep processname
+top -n1 | sed 's/\(.*\)$/\1__CUSTOM_LINE_MARKER/g'
+top -bn1 | sed -n '/Cpu/p' | awk '{print $2}' | sed 's/..,//'
+top -b -n1 | head -8 | tail -1 | awk '{ printf "User: %s\nPID: %s\nCPU Usage: %s\nMEM Usage: %s\n", $2,$1,$9,$10 }'
+top -b -n1 -c  | awk '/PID *USER/{print;getline;print}'
+top -b -n1 -c  | grep -A 2 '^$'
+top -u abc -d 30 -b -n 10
+top -p $(pgrep -d',' http)
+top -p "$(pgrep -d ',' java)"
+top -p `pgrep process-name | tr "\\n" "," | sed 's/,$//'`
+top -c -p $(pgrep -d',' -f string_to_match_in_cmd_line)
+top -c
+LINE=$(top -b -n 1 | tail -n +8 | head -n 1 | tr -s ' ')
+OUTPUT=`top -b -n 1 | tail -n +8 | head -n 1`
+top –p $PID
+top -b -p `pidof a.out`
+top -b -p `pidof a.out` -n 100
+top -p "$(pgrep --newest ProgramName)"
+top -p "$(pgrep ProgramName | head -n 1)"
+top -p $(ps aux | awk '/ProgramName/ && ! /awk/ { print $2; exit; }')
+top -p "$(pgrep --oldest ProgramName)"
+top -b -n 1 | mail -s "any subject" your_email@domain.com
+sudo cp mymodule.ko /lib/modules/$(uname -r)/kernel/drivers/
+cat /boot/config-`uname -r` | grep IP_MROUTE
+cat /boot/config-`uname -r`
+find /lib/modules/`uname -r` -regex .*perf.*
+grep “HIGHMEM” /boot/config-`uname -r`
+cat /proc/2671/maps | grep `which tail`
+view /boot/config-$(uname -r)
+sudo lsusb -t|less
+grep PROBES /boot/config-$(uname -r)
+grep UTRACE /boot/config-$(uname -r)
+grep ds1337 /lib/modules/`uname -r`/modules.alias
+sudo lsusb -v|less
+top -l 1  | grep $app_name
+top -l 1 -s 0 -stats mem -pid $PID
+top -l 1 -s 0 -i 1 -stats vprvt -pid $PID
+sed -i "s/\\\\\n//g" filename
+set -e
+perl -pi -e 'BEGIN { print "A new line" }' $(find . -name '*.py')
+for a in `find . -name '*.py'` ; do cp "$a" "$a.cp" ; echo "Added line" > "$a" ; cat "$a.cp" >> "$a" ; rm "$a.cp" ; done
+find . -name \*.py -print0 | xargs -0 sed -i '1a Line of text here'
+find . -name \*.py | xargs sed -i '1a Line of text here'
+find ~ -type d -exec chmod +x {} \;
+rename 's/(.*)$/new.$1/' original.filename
+rename 's/^/new./' original.filename
+nl -s prefix file.txt | cut -c7-
+nl -s "prefix_" a.txt | cut -c7-
+find /volume1/uploads -name "*.mkv" -exec mv \{\} \{\}.avi \;
+cat <(crontab -l) <(echo "1 2 3 4 5 scripty.sh") | crontab -
+ping google.com | xargs -L 1 -I '{}' date '+%c: {}'
+ping host | perl -nle 'print scalar(localtime), " ", $_'
+nl -ba infile
+nl -ba long-file \
+echo "$string" | nl -ba -s') '
+crontab -l -u user | cat - filename | crontab -u user -
+cat file1 file2 | crontab
+crontab filename
+pushd "$HOME/Pictures"
+sudo chmod +x java_ee_sdk-6u2-jdk-linux-x64.sh
+chmod +x pretty-print
+chmod +x rr.sh
+chmod a+x ComputeDate col printdirections
+chmod +x *.sh
+chmod g+w $(ls -1a | grep -v '^..$')
+chmod g+w .[^.]* ..?*
+find . -maxdepth 0 -type f -exec chmod g+w {} ';'
+chmod g+w * ...*
+nl -v1000001 file
+sed 's/3d3d/\n&/2g' temp | split -dl1 - temp
+for filename in *.jpg; do mv "$filename" "prefix_$filename"; done;
+nl -s"^M${LOGFILE}>  "
+sudo chmod +rx $(which node)
+find . -type d -exec chmod +rx {} \;
+find . -name "rc.conf" -exec chmod o+r '{}' \;
+find . -type f -iname '*.txt' -print0 | xargs -0 mv {} {}.abc
+find ~/dir_data -type d -exec chmod a+xr,u+w {} \;
+v=5 env|less
+TESTVAR=bbb env | fgrep TESTVAR
+pushd %Pathname%
+chmod +x $(brew --prefix)/etc/bash_completion
+touch -d "$(date -r filename) - 2 hours" filename
+touch -d "$(date -r "$filename") - 2 hours" "$filename"
+alias cd-='cd $(history -p !!:1)'
+ssh -t example.com "screen -r -X ls"
+ssh -t example.com "screen -r; ls"
+ssh -t example.com "screen -r"
+chmod a+x myscript.sh
+chmod a+x $pathToShell"myShell.sh"
+sudo chmod u+s `which Xvfb`
+ssh -fL 127.0.0.1:someport:host.in.the.remote.net:22 proxy.host
+yes no | <command>

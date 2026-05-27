@@ -1,92 +1,102 @@
 import time
 import torch
-from transformers import AutoTokenizer, T5ForConditionalGeneration
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import numpy as np
+import os
 
 # Constants
-MODEL_NAME = "Salesforce/codet5-small"
+MODEL_NAME = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DTYPE = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+TRAIN_NL_PATH = "data/bash/train.nl"
+TRAIN_CM_PATH = "data/bash/train.cm"
 
-# Mock dataset subset (NL, Expected Bash)
-TEST_DATA = [
-    ("list all files in the current directory", "ls"),
-    ("list all files including hidden ones", "ls -a"),
-    ("find files named 'test.txt' in current directory", "find . -name 'test.txt'"),
-    ("copy file.txt to /tmp", "cp file.txt /tmp"),
-    ("remove the directory 'data' and all its contents", "rm -rf data"),
-    ("show disk usage for the current folder", "du -sh ."),
-    ("search for 'error' in log.txt", "grep error log.txt"),
-    ("change permissions of script.sh to executable", "chmod +x script.sh"),
-    ("create a new directory named 'backup'", "mkdir backup"),
-    ("print the first 10 lines of file.txt", "head -n 10 file.txt")
-]
+def load_test_data(limit=10):
+    if not os.path.exists(TRAIN_NL_PATH) or not os.path.exists(TRAIN_CM_PATH):
+        print("[!] Dataset files not found.")
+        return []
+    
+    with open(TRAIN_NL_PATH, "r") as f_nl, open(TRAIN_CM_PATH, "r") as f_cm:
+        nls = [line.strip() for line in f_nl.readlines()]
+        cms = [line.strip() for line in f_cm.readlines()]
+    
+    return list(zip(nls, cms))[:limit]
 
-class Benchmark:
+class Evaluator:
     def __init__(self):
-        print(f"[*] Loading model {MODEL_NAME} for benchmark...")
-        # Override additional_special_tokens to avoid TypeError in transformers 5.9.0
-        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, additional_special_tokens=[])
-        self.model = T5ForConditionalGeneration.from_pretrained(MODEL_NAME).to(DEVICE)
-        print("[+] Model loaded.")
+        print(f"[*] Loading model {MODEL_NAME} for evaluation...")
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            MODEL_NAME,
+            torch_dtype=DTYPE,
+            device_map="auto"
+        )
+        self.system_prompt = (
+            "You are a specialized Natural Language to Bash translator. "
+            "Output ONLY the single-line executable bash command. No markdown, no filler."
+        )
 
-    def evaluate(self, strategy_name, num_beams):
-        print(f"\n[*] Evaluating Strategy: {strategy_name} (Beams: {num_beams})...")
+    def evaluate_strategy(self, data, strategy_name, num_beams=1):
+        print(f"\n[*] Running Benchmark: {strategy_name}...")
         latencies = []
-        matches = 0
-        total = len(TEST_DATA)
+        em_matches = 0
+        
+        for nl, expected in data:
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": nl}
+            ]
+            text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            inputs = self.tokenizer([text], return_tensors="pt").to(DEVICE)
 
-        for nl, expected in TEST_DATA:
-            input_text = f"translate English to Bash: {nl}"
-            input_ids = self.tokenizer(input_text, return_tensors="pt").input_ids.to(DEVICE)
-
-            start_time = time.perf_counter()
+            start = time.perf_counter()
             with torch.no_grad():
-                output = self.model.generate(
-                    input_ids,
-                    max_length=64,
+                output_ids = self.model.generate(
+                    inputs.input_ids,
+                    max_new_tokens=64,
                     num_beams=num_beams,
-                    num_return_sequences=1,
-                    early_stopping=True
+                    do_sample=False,
+                    pad_token_id=self.tokenizer.eos_token_id
                 )
-            latency = (time.perf_counter() - start_time) * 1000  # ms
+            latency = (time.perf_counter() - start) * 1000
             latencies.append(latency)
 
-            predicted = self.tokenizer.decode(output[0], skip_special_tokens=True).strip()
+            # Extract generated text
+            generated_ids = output_ids[0][len(inputs.input_ids[0]):]
+            predicted = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
             
-            if predicted == expected:
-                matches += 1
+            # Basic EM (case-insensitive, stripped)
+            if predicted.lower() == expected.lower():
+                em_matches += 1
             
-            # Debug output for first few
-            if len(latencies) <= 3:
+            if len(latencies) <= 2:
                 print(f"  [NL]: {nl}")
                 print(f"  [Pred]: {predicted} | [Exp]: {expected}")
 
         avg_latency = np.mean(latencies)
-        em_accuracy = (matches / total) * 100
+        accuracy = (em_matches / len(data)) * 100
         
-        return {
-            "strategy": strategy_name,
-            "avg_latency": avg_latency,
-            "em_accuracy": em_accuracy
-        }
-
-def print_results_table(results):
-    print("\n### Experimental Results: NL2Bash Translation Performance\n")
-    print("| Decoding Strategy | Avg Latency (ms) | Exact Match (EM) % |")
-    print("|-------------------|-------------------|--------------------|")
-    for res in results:
-        print(f"| {res['strategy']:<17} | {res['avg_latency']:>17.2f} | {res['em_accuracy']:>18.1f}% |")
-    print("\n")
+        return {"strategy": strategy_name, "latency": avg_latency, "accuracy": accuracy}
 
 if __name__ == "__main__":
-    bench = Benchmark()
+    test_subset = load_test_data(10)
+    if not test_subset:
+        sys.exit(1)
+
+    evaluator = Evaluator()
     
-    # Warmup
-    print("[*] Performing warmup...")
-    bench.evaluate("Warmup", 1)
+    # 1. Warmup
+    evaluator.evaluate_strategy(test_subset[:1], "Warmup", num_beams=1)
     
-    # Actual Benchmark
-    greedy_results = bench.evaluate("Greedy Decoding", 1)
-    beam_results = bench.evaluate("5-Beam Search", 5)
+    # 2. Greedy Decoding
+    greedy_results = evaluator.evaluate_strategy(test_subset, "Greedy Decoding", num_beams=1)
     
-    print_results_table([greedy_results, beam_results])
+    # 3. Beam Search
+    beam_results = evaluator.evaluate_strategy(test_subset, "3-Beam Search", num_beams=3)
+
+    print("\n### Performance Comparison Matrix\n")
+    print("| Strategy | Avg Latency (ms) | EM Accuracy % |")
+    print("|----------|------------------|---------------|")
+    for res in [greedy_results, beam_results]:
+        print(f"| {res['strategy']:<15} | {res['latency']:>16.2f} | {res['accuracy']:>12.1f}% |")
+    print("\n")
