@@ -11,9 +11,21 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Use float16 for T4 optimization
 DTYPE = torch.float16 if torch.cuda.is_available() else torch.float32
 
+def clean_command_string(text):
+    """
+    Targets and scrubs markdown wrappers (```bash, ```, `) and trailing newlines.
+    """
+    # Remove triple backtick blocks with optional 'bash' tag
+    text = re.sub(r"```(?:bash)?\n?", "", text)
+    text = re.sub(r"```", "", text)
+    # Remove single backticks
+    text = re.sub(r"`", "", text)
+    # Return stripped single line
+    return text.strip().split('\n')[0]
+
 class NL2BashCLI:
     def __init__(self):
-        print(f"[*] Initializing {MODEL_NAME} on {DEVICE}...")
+        print(f"[*] Initializing {MODEL_NAME} on {DEVICE} (Dtype: {DTYPE})...")
         self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         self.model = AutoModelForCausalLM.from_pretrained(
             MODEL_NAME,
@@ -46,7 +58,7 @@ class NL2BashCLI:
             generated_ids = self.model.generate(
                 model_inputs.input_ids,
                 max_new_tokens=64,
-                do_sample=False,  # Greedy for CLI consistency
+                do_sample=False,
                 temperature=0.0,
                 pad_token_id=self.tokenizer.eos_token_id
             )
@@ -56,8 +68,8 @@ class NL2BashCLI:
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
         
-        response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-        return response.strip()
+        raw_response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        return clean_command_string(raw_response)
 
     def execute_command(self, cmd):
         print(f"\n[!] Executing: {cmd}")
