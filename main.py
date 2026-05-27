@@ -6,10 +6,11 @@ import inquirer
 import re
 
 # Constants
-MODEL_NAME = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+MODEL_NAME = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Use float16 for T4 optimization
 DTYPE = torch.float16 if torch.cuda.is_available() else torch.float32
+MAX_NEW_TOKENS = 32
 
 def clean_command_string(text):
     """
@@ -57,7 +58,7 @@ class NL2BashCLI:
         with torch.no_grad():
             generated_ids = self.model.generate(
                 model_inputs.input_ids,
-                max_new_tokens=64,
+                max_new_tokens=MAX_NEW_TOKENS,
                 do_sample=False,
                 temperature=0.0,
                 pad_token_id=self.tokenizer.eos_token_id
