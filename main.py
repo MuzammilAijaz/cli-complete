@@ -1,7 +1,7 @@
 import sys
 import subprocess
 import torch
-from transformers import RobertaTokenizer, T5ForConditionalGeneration
+from transformers import AutoTokenizer, T5ForConditionalGeneration
 import inquirer
 
 # Constants
@@ -21,7 +21,8 @@ FALLBACKS = {
 class NL2BashCLI:
     def __init__(self):
         print(f"[*] Loading model {MODEL_NAME} on {DEVICE}...")
-        self.tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME)
+        # Override additional_special_tokens to avoid TypeError in transformers 5.9.0
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, additional_special_tokens=[])
         self.model = T5ForConditionalGeneration.from_pretrained(MODEL_NAME).to(DEVICE)
         print("[+] Model loaded successfully.")
 
