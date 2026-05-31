@@ -115,10 +115,10 @@ class NL2BashCLI:
         with torch.inference_mode():
             generated_ids = self.model.generate(
                 model_inputs.input_ids,
+                attention_mask=model_inputs.attention_mask,
                 max_new_tokens=MAX_NEW_TOKENS,
                 eos_token_id=self.tokenizer.eos_token_id,
                 do_sample=False,
-                temperature=0.0,
                 pad_token_id=self.tokenizer.eos_token_id
             )
             
