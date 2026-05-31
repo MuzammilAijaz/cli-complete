@@ -1,4 +1,7 @@
-import sys
+DEBUG_ENABLED = True # Set to True to see inference timing
+import time
+program_start_time = time.perf_counter()
+
 import subprocess
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -7,10 +10,6 @@ import inquirer
 import re
 import os
 import tomllib
-import time
-
-# Configuration
-DEBUG_ENABLED = True # Set to True to see inference timing
 
 # Load configuration
 with open("configs/training.toml", "rb") as f:
@@ -32,7 +31,7 @@ else:
     DTYPE = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float32
     print(f"[*] CUDA not found. Falling back to {DEVICE} with {DTYPE}")
 
-MAX_NEW_TOKENS = 32
+MAX_NEW_TOKENS = 42
 
 def clean_command_string(text):
     """
@@ -146,6 +145,11 @@ class NL2BashCLI:
             print(f"[x] Execution failed: {e}")
 
     def run(self):
+
+        cli_start_time = time.perf_counter()
+        if DEBUG_ENABLED:
+            print(f"[*] Cli start time: {cli_start_time - program_start_time:.4f}s")
+
         print("\n=== NL2Bash Local CLI (Qwen2.5-Coder) ===")
         print("Fast, 100% Local Semantic Parsing.")
         print("Type 'exit' to quit.\n")
