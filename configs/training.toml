@@ -1,0 +1,32 @@
+[model]
+name = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+adapter_path = "./qwen-nl2bash-adapter"
+
+[training]
+max_length = 512
+batch_size = 4
+gradient_accumulation_steps = 4
+learning_rate = 8e-5
+epochs = 3
+logging_steps = 10
+save_steps = 200
+fp16 = true
+bf16 = false
+
+[lora]
+r = 16
+alpha = 32
+dropout = 0.05
+target_modules = [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+]
+
+[data]
+max_nl_words = 150
+data_dir = "data/bash"

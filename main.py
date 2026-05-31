@@ -8,18 +8,22 @@ from datasets import Dataset
 import inquirer
 import re
 import os
+import tomllib
+
+# load configuration
+with open("configs/training.toml", "rb") as f:
+    config = tomllib.load(f)
 
 # Constants
-MODEL_NAME = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
-ADAPTER_PATH = "./qwen-nl2bash-adapter"
+MODEL_NAME = config["model"]["name"]
+ADAPTER_PATH = config["model"]["adapter_path"]
 
 # DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 if not torch.cuda.is_available():
     raise RuntimeError("CUDA GPU required for training.")
 DEVICE = "cuda"
 # Use float16 for T4 optimization
-# DTYPE = torch.float16 if torch.cuda.is_available() else torch.float32
- DTYPE = torch.float16
+DTYPE = torch.float16
 
 MAX_NEW_TOKENS = 32
 
@@ -106,7 +110,11 @@ class NL2BashCLI:
         formatted_data = []
         for nl, cm in zip(nls, cms):
             nl, cm = nl.strip(), cm.strip()
-            if len(nl.split()) > 50: continue # Filter long descriptions
+
+            # filter long descriptions
+            max_words = config["data"]["max_nl_words"]
+            if len(nl.split()) > max_words:
+                continue
             
             messages = [
                 {"role": "system", "content": self.system_prompt},
@@ -118,38 +126,39 @@ class NL2BashCLI:
 
         dataset = Dataset.from_list(formatted_data)
         
-        # ==== Configuration ==========================================================
+        lora_cfg = config["lora"]
         lora_config = LoraConfig(
-            r=16,
-            lora_alpha=32,
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-            lora_dropout=0.05,
-            bias="none",
-            task_type="CAUSAL_LM"
+                r=lora_cfg["r"],
+                lora_alpha=lora_cfg["alpha"],
+                target_modules=lora_cfg["target_modules"],
+                lora_dropout=lora_cfg["dropout"],
+                bias="none",
+                task_type="CAUSAL_LM"
         )
-        
+
         print("[*] Starting SFT Training (LoRA)...")
+
+        train_cfg = config["training"]
         training_args = SFTConfig(
-            output_dir="./qwen-sft-results",
-            max_length=512,
-            per_device_train_batch_size=4,
-            gradient_accumulation_steps=4,
-            learning_rate=2e-4,
-            num_train_epochs=1,
-            logging_steps=10,
-            save_steps=100,
-            bf16=False, # Use float16
-            fp16=torch.cuda.is_available(),
-            dataset_text_field="text"
+                output_dir="./qwen-sft-results",
+                max_length=train_cfg["max_length"],
+                per_device_train_batch_size=train_cfg["batch_size"],
+                gradient_accumulation_steps=train_cfg["gradient_accumulation_steps"],
+                learning_rate=train_cfg["learning_rate"],
+                num_train_epochs=train_cfg["epochs"],
+                logging_steps=train_cfg["logging_steps"],
+                save_steps=train_cfg["save_steps"],
+                fp16=train_cfg["fp16"],
+                bf16=train_cfg["bf16"],
+                dataset_text_field="text"
         )
-        
+
         trainer = SFTTrainer(
             model=self.model,
             args=training_args,
             train_dataset=dataset,
             peft_config=lora_config,
         )
-        # =============================================================================
         
         trainer.train()
         self.model.save_pretrained(ADAPTER_PATH)
