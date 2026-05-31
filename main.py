@@ -79,6 +79,7 @@ class NL2BashCLI:
             generated_ids = self.model.generate(
                 model_inputs.input_ids,
                 max_new_tokens=MAX_NEW_TOKENS,
+                eos_token_id=self.tokenizer.eos_token_id,
                 do_sample=False,
                 temperature=0.0,
                 pad_token_id=self.tokenizer.eos_token_id
@@ -150,6 +151,7 @@ class NL2BashCLI:
                 save_steps=train_cfg["save_steps"],
                 fp16=train_cfg["fp16"],
                 bf16=train_cfg["bf16"],
+                gradient_checkpointing=True, # redcues VRAM usage
                 dataset_text_field="text"
         )
 
@@ -161,7 +163,7 @@ class NL2BashCLI:
         )
         
         trainer.train()
-        self.model.save_pretrained(ADAPTER_PATH)
+        trainer.model.save_pretrained(ADAPTER_PATH)
         print(f"[+] Training complete. Adapter saved to {ADAPTER_PATH}")
 
     def execute_command(self, cmd):
