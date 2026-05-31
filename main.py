@@ -159,10 +159,13 @@ class NL2BashCLI:
                     print("[-] No command generated.")
                     continue
 
-                # Prompt for execution
+                # Display the command clearly
+                print(f"\n[>] Suggested: {command}")
+
+                # Prompt for execution with a safe static message
                 confirm = [
                     inquirer.Confirm('confirm',
-                                     message=f"Generated: `{command}`. Run it?",
+                                     message="Execute the suggested command?",
                                      default=False),
                 ]
                 
