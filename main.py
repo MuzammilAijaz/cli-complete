@@ -7,6 +7,10 @@ import inquirer
 import re
 import os
 import tomllib
+import time
+
+# Configuration
+DEBUG_ENABLED = True # Set to True to see inference timing
 
 # Load configuration
 with open("configs/training.toml", "rb") as f:
@@ -153,7 +157,12 @@ class NL2BashCLI:
                     break
 
                 # Generate command
+                start_time = time.perf_counter()
                 command = self.translate(query)
+                end_time = time.perf_counter()
+                
+                if DEBUG_ENABLED:
+                    print(f"[*] Inference time: {end_time - start_time:.4f}s")
                 
                 if not command:
                     print("[-] No command generated.")
