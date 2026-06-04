@@ -1,0 +1,50 @@
+ls -la
+rm -rf build/
+mv *.pdf ~/Desktop/
+find . -name "package.json"
+grep -r "TODO" *.py
+chmod +x script.sh
+mkdir -p logs/2026/May
+du -sh .
+tail -n 20 /var/log/syslog
+find . -name ".DS_Store" -type f -delete
+zip -er src.zip src/
+tar -xzf archive.tar.gz
+find . -mtime -1
+fuser -k 8080/tcp
+free -m
+curl -o data.zip http://example.com/file.zip
+ps aux --sort=-%mem | head -n 11
+cat *.txt | wc -l
+find . -type d -empty -delete
+env | grep "API_KEY"
+sed -i 's/localhost/127.0.0.1/g' config.txt
+ls -lhS | head -n 11
+find . -name "*.log" -exec truncate -s 0 {} +
+tail -f access.log
+ssh-keygen -t ed25519
+ls -d */
+sort -u ips.txt
+find . -size +1G
+curl ifconfig.me
+chgrp -R developers data/
+netstat -tuln
+rename 's/\.jpeg$/\.jpg/' *.jpeg
+nohup ./script.sh &
+find . -xtype l
+lscpu
+python --version
+echo 'alias ll="ls -la"' >> ~/.bashrc
+head -n 5 *.csv
+strings binary_file | grep "password"
+diff -w file1.txt file2.txt
+date -u
+cut -d: -f1 /etc/passwd
+grep -rl 'http' . --include=*.html | xargs sed -i 's/http/https/g'
+md5sum document.pdf
+crontab -l
+df -h
+wc -w notes.md
+find / -user root
+cut -d'|' -f1 data.txt
+source ~/.bashrc
