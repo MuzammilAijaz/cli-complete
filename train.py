@@ -10,17 +10,17 @@ import tomllib
 import json
 
 # Load configuration
-with open("configs/training.toml", "rb") as f:
-    config = tomllib.load(f)
+try:
+    with open("configs/training.toml", "rb") as f:
+        config = tomllib.load(f)
+    MODEL_NAME = config["model"]["name"]
+    ADAPTER_PATH = config["model"]["adapter_path"]
+except:
+    MODEL_NAME = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+    ADAPTER_PATH = "./qwen-nl2bash-adapter"
 
-# Constants
-MODEL_NAME = config["model"]["name"]
-ADAPTER_PATH = config["model"]["adapter_path"]
-
-if not torch.cuda.is_available():
-    raise RuntimeError("CUDA GPU required for training.")
-DEVICE = "cuda"
-DTYPE = torch.float16
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DTYPE = torch.float16 if torch.cuda.is_available() else torch.float32
 
 class NL2BashTrainer:
     def __init__(self):

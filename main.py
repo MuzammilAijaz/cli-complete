@@ -12,12 +12,15 @@ import os
 import tomllib
 
 # Load configuration
-with open("configs/training.toml", "rb") as f:
-    config = tomllib.load(f)
+try:
+    with open("configs/training.toml", "rb") as f:
+        config = tomllib.load(f)
+    MODEL_NAME = config["model"]["name"]
+    ADAPTER_PATH = config["model"]["adapter_path"]
+except:
+    MODEL_NAME = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+    ADAPTER_PATH = "./qwen-nl2bash-adapter"
 
-# Constants
-MODEL_NAME = config["model"]["name"]
-ADAPTER_PATH = config["model"]["adapter_path"]
 MERGED_PATH = "./qwen-nl2bash-merged"
 
 # Dynamic hardware detection
