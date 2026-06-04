@@ -1,9 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["main.py", "train.py", "eval_benchmark.py"]
+exclude = ["data*", "configs*"]
+
 [project]
 name = "cli-llm"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = "==3.12.*"
 dependencies = [
     "accelerate>=1.13.0",
     "bitsandbytes>=0.49.2",
